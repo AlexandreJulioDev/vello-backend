@@ -1,0 +1,189 @@
+// Configura o gerador do cliente Prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Configuração do Banco de Dados (PostgreSQL)
+// Lembre-se: no Prisma 7, a URL deve ser configurada no seu arquivo .env e prisma.config.ts
+datasource db {
+  provider = "postgresql"
+}
+
+// --- ENUMS (Listas de opções fixas) ---
+
+enum TipoPerfil {
+  ADMINISTRADOR // Gestão total, financeiro e relatórios
+  FUNCIONARIO   // Campo técnico, rotas e execução de chamados
+  CLIENTE       // Portal do assinante, faturas e solicitações
+}
+
+enum StatusFatura {
+  PENDENTE
+  PAGO
+  ATRASADO
+  CANCELADO
+}
+
+enum StatusAtendimento {
+  PENDENTE      // Aberto pelo cliente, aguardando técnico
+  EM_EXECUCAO   // Técnico assumiu e está no local
+  CONCLUIDO     // Finalizado com sucesso
+  CANCELADO
+}
+
+enum StatusRede {
+  OPERANTE
+  MANUTENCAO
+  QUEDA_TOTAL
+}
+
+// --- MODELOS DO SISTEMA ---
+
+// Tabela que representa cada empresa (ex: PHNET, NOVIX) que aluga seu software
+model Provedor {
+  id_provedor    Int       @id @default(autoincrement())
+  nome_fantasia  String
+  cnpj           String    @unique
+  slug           String    @unique // ex: "phnet" - Usado para identificar o site/app do cliente
+  logo_url       String?
+  cor_principal  String?   @default("#1F6F9B") // Personalização do Front-end
+  ativo          Boolean   @default(true) // Controle de mensalidade do seu software
+  criado_em      DateTime  @default(now())
+
+  // Relações
+  usuarios       Usuario[]
+  planos         Plano[]
+  clientes       Cliente[]
+  atendimentos   Atendimento[]
+  rotas          RotaRede[]
+  faturas        Fatura[]
+
+  @@map("provedores")
+}
+
+// Tabela de Usuários (Acesso ao Sistema)
+model Usuario {
+  id_usuario    Int        @id @default(autoincrement())
+  id_provedor   Int
+  email         String     @unique
+  senha         String
+  nome          String
+  perfil        TipoPerfil @default(CLIENTE)
+  criado_em     DateTime   @default(now())
+  atualizado_em DateTime   @updatedAt
+
+  // Relações
+  provedor      Provedor   @relation(fields: [id_provedor], references: [id_provedor])
+  
+  // Atendimentos que este funcionário assumiu
+  atendimentos_tecnicos Atendimento[] @relation("FuncionarioResponsavel")
+
+  @@map("usuarios")
+}
+
+// Tabela de Planos de Internet
+model Plano {
+  id_plano      Int       @id @default(autoincrement())
+  id_provedor   Int
+  nome          String    // Ex: "Fibra 500MB Turbo"
+  velocidade    Int       // Em Mbps
+  preco         Decimal   @db.Decimal(10, 2)
+  ativo         Boolean   @default(true)
+
+  // Relações
+  provedor      Provedor  @relation(fields: [id_provedor], references: [id_provedor])
+  clientes      Cliente[]
+
+  @@map("planos")
+}
+
+// Tabela de Clientes (Assinantes)
+model Cliente {
+  id_cliente    Int      @id @default(autoincrement())
+  id_provedor   Int
+  id_plano      Int?
+  
+  nome          String
+  cpf           String   @unique
+  data_nascimento DateTime
+  email         String?
+  telefone      String
+  endereco      String
+  cidade        String   @default("Camaragibe")
+  ativo         Boolean  @default(true)
+  criado_em     DateTime @default(now())
+  atualizado_em DateTime @updatedAt
+
+  // Relações
+  provedor      Provedor @relation(fields: [id_provedor], references: [id_provedor])
+  plano         Plano?   @relation(fields: [id_plano], references: [id_plano])
+  faturas       Fatura[]
+  atendimentos  Atendimento[]
+
+  @@map("clientes")
+}
+
+// Tabela de Cobranças (Para o seu módulo de PIX/Boleto)
+model Fatura {
+  id_fatura      Int          @id @default(autoincrement())
+  id_provedor    Int
+  id_cliente     Int
+  valor          Decimal      @db.Decimal(10, 2)
+  data_vencimento DateTime
+  data_pagamento DateTime?
+  status         StatusFatura @default(PENDENTE)
+  
+  // Dados para integração de pagamento
+  pix_copia_cola String?      @db.Text
+  link_boleto    String?      @db.Text
+  id_transacao_gateway String? // ID que vem do banco (Efí, Asaas, etc)
+
+  // Relações
+  provedor       Provedor     @relation(fields: [id_provedor], references: [id_provedor])
+  cliente        Cliente      @relation(fields: [id_cliente], references: [id_cliente])
+
+  @@map("faturas")
+}
+
+// Tabela de Atendimentos / Ordens de Serviço (Gestão de campo)
+model Atendimento {
+  id_atendimento   Int               @id @default(autoincrement())
+  id_provedor      Int
+  id_cliente       Int
+  id_funcionario   Int?              // Técnico que assumiu o chamado
+  
+  titulo           String            // Ex: "Sem sinal de internet"
+  descricao        String            @db.Text
+  status           StatusAtendimento @default(PENDENTE)
+  
+  // Feedback do Cliente
+  nota_avaliacao   Int?              // 1 a 5
+  comentario_cliente String?         @db.Text
+
+  criado_em        DateTime          @default(now())
+  finalizado_em    DateTime?
+
+  // Relações
+  provedor         Provedor          @relation(fields: [id_provedor], references: [id_provedor])
+  cliente          Cliente           @relation(fields: [id_cliente], references: [id_cliente])
+  funcionario      Usuario?          @relation("FuncionarioResponsavel", fields: [id_funcionario], references: [id_usuario])
+
+  @@map("atendimentos")
+}
+
+// Tabela Técnica: Mapa e Monitoramento de Rede
+model RotaRede {
+  id_rota          Int        @id @default(autoincrement())
+  id_provedor      Int
+  nome_rota        String     // Ex: "Setor Sul - Bairro Novo"
+  ponto_referencia String?
+  status           StatusRede @default(OPERANTE)
+  
+  // Geolocalização para o mapa do funcionário
+  latitude         Float?
+  longitude        Float?
+
+  provedor         Provedor   @relation(fields: [id_provedor], references: [id_provedor])
+
+  @@map("rotas_rede")
+}

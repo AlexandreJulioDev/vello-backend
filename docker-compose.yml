@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  database:
+    # Imagem oficial com suporte a PostGIS para os mapas do sistema [cite: 29, 469]
+    image: postgis/postgis:16-3.4
+    container_name: provedor_db_container
+    restart: always # Garante que o banco reinicie sozinho se falhar
+    environment:
+      # Credenciais para o seu banco de dados
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: provedor123
+      POSTGRES_DB: isp_db
+    ports:
+      - '5432:5432' # Porta padrão do PostgreSQL
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data: # Persistência: seus dados não somem ao desligar o PC
