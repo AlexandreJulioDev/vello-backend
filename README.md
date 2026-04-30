@@ -32,7 +32,7 @@
 1.  **Clone o repositório:**
     
 ```bash
-    git clone [https://github.com/seu-usuario/vello-backend.git](https://github.com/seu-usuario/vello-backend.git)
+    git clone [https://github.com/AlexandreJulioDev/vello-backend.git](https://github.com/AlexandreJulioDev/vello-backend.git)
     cd vello-backend
     ```
 
