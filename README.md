@@ -15,11 +15,11 @@
 
 ## ✨ Funcionalidades Principais
 
-*   **Autenticação Segura:** Sistema de login com criptografia de senhas (Bcrypt).
+*   **Autenticação Segura:** Sistema de login com criptografia de senhas via Bcrypt.
 *   **Isolamento de Dados (Multi-tenancy):** Cada provedor acessa apenas seus próprios clientes e planos, validado via Token JWT.
 *   **Gestão de Planos e Clientes:** CRUDs completos com relacionamentos no banco de dados.
 *   **Documentação Automática:** API totalmente documentada e testável via Swagger.
-*   **Validação de Dados:** Proteção contra entradas inválidas em todas as rotas.
+*   **Validação de Dados:** Proteção contra entradas inválidas em todas as rotas utilizando DTOs.
 
 ## 🚀 Como Rodar o Projeto
 
@@ -66,10 +66,14 @@
 
 ## 👨‍💻 Desenvolvedor
 
-**Alexandre Silva**
-*   Estudante de Engenharia de Computação - UNINASSAU
-*   Foco em Desenvolvimento Fullstack & Arquitetura Cloud (AWS)
-*   [LinkedIn](https://www.linkedin.com/in/alexandre-julio-dev) 
+**Alexandre Julio Avelino da Silva**
+*   **Graduando em Engenharia de Computação** — UNINASSAU (Recife).
+*   **Especialista Cloud em Formação** — Escola da Nuvem / AWS re/Start.
+*   **Desenvolvedor Fullstack** — Formado pela Generation Brasil.
+*   **Foco Profissional:** Arquitetura Cloud (AWS), Backend (Node.js/NestJS) e soluções SaaS escaláveis.
+
+### 🌐 Contato
+*   [LinkedIn](https://www.linkedin.com/in/alexandre-julio-dev)
 *   [Portfólio](https://meu-portfolio-chi-khaki.vercel.app/)
 
 ---
