@@ -12,10 +12,16 @@ export class AuthController {
 
   @Post('login')
   async login(@Body() body: any) {
-    const user = await this.authService.validateUser(body.email, body.senha);
+    const { email, senha, id_provedor } = body;
+
+    if (!id_provedor) {
+      throw new UnauthorizedException('O ID do provedor é obrigatório para o login.');
+    }
+
+    const user = await this.authService.validateUser(email, senha, Number(id_provedor));
 
     if (!user) {
-      throw new UnauthorizedException('E-mail ou senha inválidos');
+      throw new UnauthorizedException('E-mail, senha ou provedor inválidos');
     }
 
     return this.authService.login(user);
@@ -23,37 +29,47 @@ export class AuthController {
 
   @Post('register')
   async register(@Body() body: any) {
-    // Verifica se já existe um cliente com esse e-mail ou CPF
-    const provedor = await this.prisma.provedor.findFirst({ where: { ativo: true } });
-    if (!provedor) {
-      throw new ConflictException('Nenhum provedor ativo encontrado.');
+    const { id_provedor, email, cpf, senha, nome, data_nascimento, telefone } = body;
+
+    if (!id_provedor) {
+      throw new ConflictException('O ID do provedor é obrigatório para o cadastro.');
     }
 
+    // Verifica se o provedor existe e está ativo
+    const provedor = await this.prisma.provedor.findUnique({ 
+      where: { id_provedor: Number(id_provedor) } 
+    });
+
+    if (!provedor || !provedor.ativo) {
+      throw new ConflictException('Provedor inválido ou inativo.');
+    }
+
+    // Verifica se já existe um cliente com esse e-mail ou CPF dentro DESTE provedor
     const existente = await this.prisma.cliente.findFirst({
       where: {
         id_provedor: provedor.id_provedor,
         OR: [
-          { email: body.email },
-          { cpf: body.cpf },
+          { email },
+          { cpf },
         ],
       },
     });
 
     if (existente) {
-      throw new ConflictException('Já existe uma conta com este e-mail ou CPF.');
+      throw new ConflictException('Já existe uma conta com este e-mail ou CPF neste provedor.');
     }
 
-    const senha_hash = await bcrypt.hash(body.senha, 10);
+    const senha_hash = await bcrypt.hash(senha, 10);
 
     const cliente = await this.prisma.cliente.create({
       data: {
         id_provedor: provedor.id_provedor,
-        nome: body.nome,
-        cpf: body.cpf,
-        data_nascimento: new Date(body.data_nascimento),
-        email: body.email,
+        nome,
+        cpf,
+        data_nascimento: new Date(data_nascimento),
+        email,
         senha_hash,
-        telefone: body.telefone,
+        telefone,
       },
     });
 

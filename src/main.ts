@@ -6,12 +6,10 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // 1. Habilita o CORS (aceita o Front-end local e o de produção na Vercel)
+  // 1. Habilita o CORS (SaaS Ready: Aceita múltiplos domínios)
   app.enableCors({
-    origin: [
-      'http://localhost:3000',
-      'https://vello-front-end-n1g2.vercel.app',
-    ],
+    origin: true, 
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
 

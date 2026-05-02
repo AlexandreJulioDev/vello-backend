@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { UsuariosService } from '../usuarios/usuarios.service';
 import { JwtService } from '@nestjs/jwt';
+import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -8,28 +9,25 @@ export class AuthService {
   constructor(
     private usuariosService: UsuariosService,
     private jwtService: JwtService,
+    private prisma: PrismaService,
   ) {}
 
   /**
    * 1. Valida se o usuário existe e se a senha está correta.
    * Corrigido para evitar o erro 'data and hash arguments required'.
    */
-  async validateUser(email: string, pass: string): Promise<any> {
-    // Busca o usuário no PostgreSQL via Prisma
-    const user = await this.usuariosService.findByEmail(email);
+  async validateUser(email: string, pass: string, id_provedor: number): Promise<any> {
+    // Busca o usuário (Admin, Func ou Cliente) filtrando pelo Provedor
+    const user = await this.usuariosService.findByEmail(email, id_provedor);
 
-    // SEGURANÇA: Se o usuário não existir ou a senha enviada for nula, 
-    // retornamos null imediatamente sem chamar o bcrypt.
     if (!user || !pass) {
       return null;
     }
 
-    // Agora é seguro comparar, pois garantimos que 'pass' e 'user.senha' existem
     const isMatch = await bcrypt.compare(pass, user.senha);
 
     if (isMatch) {
-      // Removemos a senha do objeto de retorno por segurança
-      const { senha, ...result } = user;
+      const { senha, senha_hash, ...result } = user;
       return result;
     }
 
