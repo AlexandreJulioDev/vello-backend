@@ -41,19 +41,25 @@ export class AuthService {
    * Mantém o isolamento SaaS necessário para o projeto Vello.
    */
   async login(user: any) {
+    // Identifica se é um Cliente ou Usuário do sistema
+    const isCliente = !!user.id_cliente;
+    const userId = isCliente ? user.id_cliente : user.id_usuario;
+    const userPerfil = isCliente ? 'CLIENTE' : user.perfil;
+
     const payload = { 
       email: user.email, 
-      sub: user.id_usuario, 
+      sub: userId, 
       id_provedor: user.id_provedor, 
-      perfil: user.perfil 
+      perfil: userPerfil 
     };
     
     return {
       access_token: this.jwtService.sign(payload),
       usuario: {
+        id: userId,
         nome: user.nome,
         email: user.email,
-        perfil: user.perfil,
+        perfil: userPerfil,
         id_provedor: user.id_provedor
       }
     };

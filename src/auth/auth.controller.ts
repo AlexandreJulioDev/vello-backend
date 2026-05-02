@@ -57,8 +57,7 @@ export class AuthController {
       },
     });
 
-    // Faz login automaticamente após o cadastro
-    const user = await this.authService.validateUser(body.email, body.senha);
-    return this.authService.login(user);
+    // Login direto com o cliente que acabamos de criar
+    return this.authService.login(cliente);
   }
 }
