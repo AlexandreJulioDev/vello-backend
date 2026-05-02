@@ -16,12 +16,14 @@ export class ContratosController {
 
   @Get()
   findAll(@Request() req) {
-    return this.contratosService.findAll(req.user.id_provedor);
+    const id_cliente = req.user.perfil === 'CLIENTE' ? req.user.userId : undefined;
+    return this.contratosService.findAll(req.user.id_provedor, id_cliente);
   }
 
   @Get(':id')
   findOne(@Param('id') id: string, @Request() req) {
-    return this.contratosService.findOne(+id, req.user.id_provedor);
+    const id_cliente = req.user.perfil === 'CLIENTE' ? req.user.userId : undefined;
+    return this.contratosService.findOne(+id, req.user.id_provedor, id_cliente);
   }
 
   @Patch(':id')

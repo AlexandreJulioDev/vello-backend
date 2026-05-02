@@ -18,9 +18,12 @@ export class ContratosService {
     });
   }
 
-  async findAll(id_provedor: string) {
+  async findAll(id_provedor: string, id_cliente?: number) {
     return this.prisma.contrato.findMany({
-      where: { id_provedor: Number(id_provedor) },
+      where: { 
+        id_provedor: Number(id_provedor),
+        ...(id_cliente ? { id_cliente } : {})
+      },
       include: {
         cliente: true,
         plano: true,
@@ -30,9 +33,13 @@ export class ContratosService {
     });
   }
 
-  async findOne(id: number, id_provedor: string) {
+  async findOne(id: number, id_provedor: string, id_cliente?: number) {
     const contrato = await this.prisma.contrato.findFirst({
-      where: { id_contrato: id, id_provedor: Number(id_provedor) },
+      where: { 
+        id_contrato: id, 
+        id_provedor: Number(id_provedor),
+        ...(id_cliente ? { id_cliente } : {})
+      },
       include: {
         cliente: true,
         plano: true,

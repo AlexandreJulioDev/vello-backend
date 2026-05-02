@@ -18,9 +18,12 @@ export class FaturasService {
     });
   }
 
-  async findAll(id_provedor: string) {
+  async findAll(id_provedor: string, id_cliente?: number) {
     return this.prisma.fatura.findMany({
-      where: { id_provedor: Number(id_provedor) },
+      where: { 
+        id_provedor: Number(id_provedor),
+        ...(id_cliente ? { id_cliente } : {})
+      },
       include: {
         cliente: true,
         contrato: true,
@@ -29,9 +32,13 @@ export class FaturasService {
     });
   }
 
-  async findOne(id: number, id_provedor: string) {
+  async findOne(id: number, id_provedor: string, id_cliente?: number) {
     const fatura = await this.prisma.fatura.findFirst({
-      where: { id_fatura: id, id_provedor: Number(id_provedor) },
+      where: { 
+        id_fatura: id, 
+        id_provedor: Number(id_provedor),
+        ...(id_cliente ? { id_cliente } : {})
+      },
       include: { cliente: true, contrato: true }
     });
     if (!fatura) throw new NotFoundException('Fatura não encontrada.');
