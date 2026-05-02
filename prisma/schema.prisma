@@ -142,6 +142,8 @@ model Administrador {
   email         String
   senha_hash    String
   perfil        PerfilAdm
+  telefone      String?
+  foto_url      String?
   ativo         Boolean   @default(true)
   criado_em     DateTime  @default(now())
   atualizado_em DateTime  @updatedAt

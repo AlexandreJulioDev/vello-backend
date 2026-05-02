@@ -105,7 +105,7 @@ export class AuthController {
       },
     }),
   }))
-  async uploadFile(@UploadedFile() file: Express.Multer.File) {
+  async uploadFile(@UploadedFile() file: any) {
     if (!file) throw new BadRequestException('Nenhum arquivo enviado.');
     
     // Retorna a URL relativa para salvar no banco
