@@ -1,4 +1,9 @@
-import { Controller, Post, Get, Body, Param, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Patch, UseGuards, Request, UnauthorizedException, ConflictException, BadRequestException, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import * as fs from 'fs';
+import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
@@ -55,6 +60,56 @@ export class AuthController {
     });
 
     return this.authService.login(cliente);
+  }
+
+  // ─── ATUALIZAR PERFIL (Self) ──────────────────────────
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('perfil')
+  async updatePerfil(@Body() body: any, @Request() req) {
+    const { id, perfil } = req.user;
+    const { nome, telefone, foto_url } = body;
+
+    const perfisAdm = ['DONO', 'GERENTE'];
+    const isAdm = perfisAdm.includes(perfil);
+
+    if (isAdm) {
+      return this.prisma.administrador.update({
+        where: { id_adm: id },
+        data: { nome, telefone, foto_url },
+        select: { id_adm: true, nome: true, email: true, perfil: true, telefone: true, foto_url: true }
+      });
+    } else {
+      return this.prisma.funcionario.update({
+        where: { id_funcionario: id },
+        data: { nome, telefone, foto_url },
+        select: { id_funcionario: true, nome: true, email: true, perfil: true, telefone: true, foto_url: true }
+      });
+    }
+  }
+
+  // ─── UPLOAD DE FOTO ──────────────────────────────────
+  @UseGuards(AuthGuard('jwt'))
+  @Post('upload')
+  @UseInterceptors(FileInterceptor('file', {
+    storage: diskStorage({
+      destination: (req, file, cb) => {
+        const path = './uploads';
+        if (!fs.existsSync(path)) {
+          fs.mkdirSync(path, { recursive: true });
+        }
+        cb(null, path);
+      },
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        cb(null, `${uniqueSuffix}${extname(file.originalname)}`);
+      },
+    }),
+  }))
+  async uploadFile(@UploadedFile() file: Express.Multer.File) {
+    if (!file) throw new BadRequestException('Nenhum arquivo enviado.');
+    
+    // Retorna a URL relativa para salvar no banco
+    return { url: `/uploads/${file.filename}` };
   }
 }
 

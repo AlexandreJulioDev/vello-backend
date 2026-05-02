@@ -22,7 +22,9 @@ export class AtendimentosService {
     return this.prisma.atendimento.findMany({
       where: { id_provedor: Number(id_provedor) },
       include: {
-        cliente: true,
+        cliente: {
+          include: { endereco: true }
+        },
         tecnico: true,
       },
       orderBy: { criado_em: 'desc' }
@@ -32,7 +34,12 @@ export class AtendimentosService {
   async findOne(id: number, id_provedor: string) {
     const atendimento = await this.prisma.atendimento.findFirst({
       where: { id_atendimento: id, id_provedor: Number(id_provedor) },
-      include: { cliente: true, tecnico: true }
+      include: { 
+        cliente: {
+          include: { endereco: true }
+        }, 
+        tecnico: true 
+      }
     });
     if (!atendimento) throw new NotFoundException('Atendimento não encontrado.');
     return atendimento;
