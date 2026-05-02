@@ -1,5 +1,3 @@
--- CreateExtension
-CREATE EXTENSION IF NOT EXISTS "postgis";
 
 -- CreateEnum
 CREATE TYPE "PerfilAdm" AS ENUM ('DONO', 'GERENTE');
@@ -120,7 +118,7 @@ CREATE TABLE "enderecos" (
     "estado" TEXT NOT NULL,
     "complemento" TEXT,
     "referencia" TEXT,
-    "coordenadas" geometry(Point, 4326),
+    "coordenadas" TEXT,
 
     CONSTRAINT "enderecos_pkey" PRIMARY KEY ("id_endereco")
 );
@@ -259,7 +257,7 @@ CREATE TABLE "pontos_rede" (
     "portas_livres" INTEGER NOT NULL DEFAULT 8,
     "status" "StatusRede" NOT NULL DEFAULT 'OPERANTE',
     "endereco_ref" TEXT,
-    "coordenadas" geometry(Point, 4326),
+    "coordenadas" TEXT,
     "criado_em" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "atualizado_em" TIMESTAMP(3) NOT NULL,
 
