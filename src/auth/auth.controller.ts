@@ -66,7 +66,7 @@ export class AuthController {
   @UseGuards(AuthGuard('jwt'))
   @Patch('perfil')
   async updatePerfil(@Body() body: any, @Request() req) {
-    const { id, perfil } = req.user;
+    const { userId, perfil } = req.user;
     const { nome, telefone, foto_url } = body;
 
     const perfisAdm = ['DONO', 'GERENTE'];
@@ -74,13 +74,13 @@ export class AuthController {
 
     if (isAdm) {
       return this.prisma.administrador.update({
-        where: { id_adm: id },
+        where: { id_adm: userId },
         data: { nome, telefone, foto_url },
         select: { id_adm: true, nome: true, email: true, perfil: true, telefone: true, foto_url: true }
       });
     } else {
       return this.prisma.funcionario.update({
-        where: { id_funcionario: id },
+        where: { id_funcionario: userId },
         data: { nome, telefone, foto_url },
         select: { id_funcionario: true, nome: true, email: true, perfil: true, telefone: true, foto_url: true }
       });
