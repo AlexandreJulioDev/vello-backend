@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString, IsHexColor } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsBoolean } from 'class-validator';
 
 export class CreateProvedoreDto {
   @IsString()
@@ -7,17 +7,29 @@ export class CreateProvedoreDto {
 
   @IsString()
   @IsNotEmpty()
+  razao_social: string;
+
+  @IsString()
+  @IsNotEmpty()
   cnpj: string;
 
   @IsString()
   @IsNotEmpty()
-  slug: string; // Ex: "phnet" ou "novix"
+  slug: string;
+
+  @IsString()
+  @IsOptional()
+  telefone?: string;
+
+  @IsString()
+  @IsOptional()
+  email?: string;
 
   @IsString()
   @IsOptional()
   logo_url?: string;
 
-  @IsHexColor()
+  @IsBoolean()
   @IsOptional()
-  cor_principal?: string; // Ex: #1F6F9B
+  ativo?: boolean;
 }

@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsNumber } from 'class-validator';
+import { IsString, IsNotEmpty, IsNumber, IsOptional, IsBoolean } from 'class-validator';
 
 export class CreatePlanoDto {
   @IsString()
@@ -6,12 +6,31 @@ export class CreatePlanoDto {
   nome: string;
 
   @IsNumber()
-  velocidade: number;
+  velocidade_down: number;
+
+  @IsNumber()
+  velocidade_up: number;
 
   @IsNumber()
   preco: number;
 
+  @IsString()
+  @IsOptional()
+  descricao?: string;
+
   @IsNumber()
-  @IsNotEmpty()
-  id_provedor: number; // Adicionado para vincular o plano à empresa (ex: PHNET)
+  @IsOptional()
+  fidelidade_meses?: number;
+
+  @IsNumber()
+  @IsOptional()
+  portas_consumidas?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  banda_compartilhada?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  ativo?: boolean;
 }

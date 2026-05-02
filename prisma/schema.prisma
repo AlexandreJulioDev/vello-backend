@@ -1,20 +1,36 @@
-// Configura o gerador do cliente Prisma
+// =============================================================
+//  ISP SYSTEM — Schema Prisma Completo (Vello)
+//  Provedor de Internet · Multi-Tenant · Pronto para Mercado
+// =============================================================
+
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
-// Configuração do Banco de Dados (PostgreSQL)
-// Lembre-se: no Prisma 7, a URL deve ser configurada no seu arquivo .env e prisma.config.ts
 datasource db {
-  provider = "postgresql"
+  provider   = "postgresql"
+  extensions = [postgis]
 }
 
-// --- ENUMS (Listas de opções fixas) ---
+// =============================================================
+//  ENUMS
+// =============================================================
 
-enum TipoPerfil {
-  ADMINISTRADOR // Gestão total, financeiro e relatórios
-  FUNCIONARIO   // Campo técnico, rotas e execução de chamados
-  CLIENTE       // Portal do assinante, faturas e solicitações
+enum PerfilAdm {
+  DONO
+  GERENTE
+}
+
+enum PerfilFuncionario {
+  TECNICO_EXTERNO
+  SUPORTE_INTERNO
+}
+
+enum StatusContrato {
+  ATIVO
+  SUSPENSO
+  CANCELADO
 }
 
 enum StatusFatura {
@@ -24,11 +40,32 @@ enum StatusFatura {
   CANCELADO
 }
 
+enum MetodoPagamento {
+  PIX
+  BOLETO
+  CARTAO_CREDITO
+}
+
 enum StatusAtendimento {
-  PENDENTE      // Aberto pelo cliente, aguardando técnico
-  EM_EXECUCAO   // Técnico assumiu e está no local
-  CONCLUIDO     // Finalizado com sucesso
+  PENDENTE
+  EM_EXECUCAO
+  CONCLUIDO
   CANCELADO
+}
+
+enum TipoAtendimento {
+  INSTALACAO
+  MANUTENCAO
+  SUPORTE
+  CANCELAMENTO
+  VISITA_TECNICA
+}
+
+enum PrioridadeAtendimento {
+  BAIXA
+  MEDIA
+  ALTA
+  URGENTE
 }
 
 enum StatusRede {
@@ -37,153 +74,407 @@ enum StatusRede {
   QUEDA_TOTAL
 }
 
-// --- MODELOS DO SISTEMA ---
+enum TipoPontoRede {
+  OLT
+  CTO
+  SPLITTER
+  POSTE
+  CAIXA_HERMETICA
+}
 
-// Tabela que representa cada empresa (ex: PHNET, NOVIX) que aluga seu software
+enum CanalNotificacao {
+  EMAIL
+  WHATSAPP
+  SMS
+  PUSH
+}
+
+enum TipoEquipamento {
+  ONU
+  ROTEADOR
+  SWITCH
+  CABO
+  OUTROS
+}
+
+// =============================================================
+//  TENANT — PROVEDOR (A EMPRESA)
+// =============================================================
+
 model Provedor {
-  id_provedor    Int       @id @default(autoincrement())
-  nome_fantasia  String
-  cnpj           String    @unique
-  slug           String    @unique // ex: "phnet" - Usado para identificar o site/app do cliente
-  logo_url       String?
-  cor_principal  String?   @default("#1F6F9B") // Personalização do Front-end
-  ativo          Boolean   @default(true) // Controle de mensalidade do seu software
-  criado_em      DateTime  @default(now())
-
-  // Relações
-  usuarios       Usuario[]
-  planos         Plano[]
-  clientes       Cliente[]
-  atendimentos   Atendimento[]
-  rotas          RotaRede[]
-  faturas        Fatura[]
-
-  @@map("provedores")
-}
-
-// Tabela de Usuários (Acesso ao Sistema)
-model Usuario {
-  id_usuario    Int        @id @default(autoincrement())
-  id_provedor   Int
-  email         String     @unique
-  senha         String
-  nome          String
-  perfil        TipoPerfil @default(CLIENTE)
-  criado_em     DateTime   @default(now())
-  atualizado_em DateTime   @updatedAt
-
-  // Relações
-  provedor      Provedor   @relation(fields: [id_provedor], references: [id_provedor])
-  
-  // Atendimentos que este funcionário assumiu
-  atendimentos_tecnicos Atendimento[] @relation("FuncionarioResponsavel")
-
-  @@map("usuarios")
-}
-
-// Tabela de Planos de Internet
-model Plano {
-  id_plano      Int       @id @default(autoincrement())
-  id_provedor   Int
-  nome          String    // Ex: "Fibra 500MB Turbo"
-  velocidade    Int       // Em Mbps
-  preco         Decimal   @db.Decimal(10, 2)
-  ativo         Boolean   @default(true)
-
-  // Relações
-  provedor      Provedor  @relation(fields: [id_provedor], references: [id_provedor])
-  clientes      Cliente[]
-
-  @@map("planos")
-}
-
-// Tabela de Clientes (Assinantes)
-model Cliente {
-  id_cliente    Int      @id @default(autoincrement())
-  id_provedor   Int
-  id_plano      Int?
-  
-  nome          String
-  cpf           String   @unique
-  data_nascimento DateTime
+  id_provedor   Int      @id @default(autoincrement())
+  nome_fantasia String
+  razao_social  String
+  cnpj          String
+  slug          String
+  telefone      String?
   email         String?
-  telefone      String
-  endereco      String
-  cidade        String   @default("Camaragibe")
+  logo_url      String?
   ativo         Boolean  @default(true)
   criado_em     DateTime @default(now())
   atualizado_em DateTime @updatedAt
 
-  // Relações
-  provedor      Provedor @relation(fields: [id_provedor], references: [id_provedor])
-  plano         Plano?   @relation(fields: [id_plano], references: [id_plano])
-  faturas       Fatura[]
-  atendimentos  Atendimento[]
+  administradores Administrador[]
+  funcionarios    Funcionario[]
+  clientes        Cliente[]
+  planos          Plano[]
+  contratos       Contrato[]
+  faturas         Fatura[]
+  atendimentos    Atendimento[]
+  rotas_rede      RotaRede[]
+  pontos_rede     PontoRede[]
+  equipamentos    Equipamento[]
+  notificacoes    Notificacao[]
+  audit_logs      AuditLog[]
 
+  @@unique([cnpj])
+  @@unique([slug])
+  @@map("provedores")
+}
+
+// =============================================================
+//  USUÁRIOS INTERNOS — EQUIPE
+// =============================================================
+
+model Administrador {
+  id_adm        Int       @id @default(autoincrement())
+  id_provedor   Int
+  nome          String
+  email         String
+  senha_hash    String
+  perfil        PerfilAdm
+  ativo         Boolean   @default(true)
+  criado_em     DateTime  @default(now())
+  atualizado_em DateTime  @updatedAt
+
+  provedor Provedor @relation(fields: [id_provedor], references: [id_provedor])
+
+  @@unique([id_provedor, email])
+  @@index([id_provedor])
+  @@map("administradores")
+}
+
+model Funcionario {
+  id_funcionario Int               @id @default(autoincrement())
+  id_provedor    Int
+  nome           String
+  email          String
+  senha_hash     String
+  telefone       String?
+  foto_url       String?
+  perfil         PerfilFuncionario
+  ativo          Boolean           @default(true)
+  criado_em      DateTime          @default(now())
+  atualizado_em  DateTime          @updatedAt
+
+  provedor     Provedor      @relation(fields: [id_provedor], references: [id_provedor])
+  atendimentos Atendimento[] @relation("TecnicoResponsavel")
+
+  @@unique([id_provedor, email])
+  @@index([id_provedor])
+  @@map("funcionarios")
+}
+
+// =============================================================
+//  CLIENTE E ENDEREÇO
+// =============================================================
+
+model Cliente {
+  id_cliente           Int       @id @default(autoincrement())
+  id_provedor          Int
+  nome                 String
+  cpf                  String
+  rg                   String?
+  data_nascimento      DateTime
+  email                String
+  senha_hash           String
+  telefone             String
+  telefone_alt         String?
+  protocolo_instalacao String?   @unique
+  data_instalacao      DateTime?
+  mac_address_rede     String?
+  ativo                Boolean   @default(true)
+  criado_em            DateTime  @default(now())
+  atualizado_em        DateTime  @updatedAt
+
+  provedor     Provedor      @relation(fields: [id_provedor], references: [id_provedor])
+  endereco     Endereco?
+  contratos    Contrato[]
+  faturas      Fatura[]
+  atendimentos Atendimento[]
+  notificacoes Notificacao[]
+
+  @@unique([id_provedor, email])
+  @@unique([id_provedor, cpf])
+  @@index([id_provedor])
   @@map("clientes")
 }
 
-// Tabela de Cobranças (Para o seu módulo de PIX/Boleto)
-model Fatura {
-  id_fatura      Int          @id @default(autoincrement())
+model Endereco {
+  id_endereco Int                                    @id @default(autoincrement())
+  id_cliente  Int                                    @unique
+  cep         String
+  rua         String
+  numero      String
+  bairro      String
+  cidade      String
+  estado      String
+  complemento String?
+  referencia  String?
+  coordenadas Unsupported("geometry(Point, 4326)")?
+
+  cliente Cliente @relation(fields: [id_cliente], references: [id_cliente])
+
+  @@map("enderecos")
+}
+
+// =============================================================
+//  PLANOS E CONTRATOS
+// =============================================================
+
+model Plano {
+  id_plano            Int      @id @default(autoincrement())
+  id_provedor         Int
+  nome                String
+  velocidade_down     Int
+  velocidade_up       Int
+  preco               Decimal  @db.Decimal(10, 2)
+  descricao           String?  @db.Text
+  fidelidade_meses    Int      @default(0)
+  portas_consumidas   Int      @default(0)
+  banda_compartilhada Boolean  @default(false)
+  ativo               Boolean  @default(true)
+  criado_em           DateTime @default(now())
+
+  provedor  Provedor   @relation(fields: [id_provedor], references: [id_provedor])
+  contratos Contrato[]
+
+  @@index([id_provedor])
+  @@map("planos")
+}
+
+model Contrato {
+  id_contrato    Int            @id @default(autoincrement())
   id_provedor    Int
   id_cliente     Int
-  valor          Decimal      @db.Decimal(10, 2)
-  data_vencimento DateTime
-  data_pagamento DateTime?
-  status         StatusFatura @default(PENDENTE)
-  
-  // Dados para integração de pagamento
-  pix_copia_cola String?      @db.Text
-  link_boleto    String?      @db.Text
-  id_transacao_gateway String? // ID que vem do banco (Efí, Asaas, etc)
+  id_plano       Int
+  id_ponto_rede  Int?
 
-  // Relações
-  provedor       Provedor     @relation(fields: [id_provedor], references: [id_provedor])
-  cliente        Cliente      @relation(fields: [id_cliente], references: [id_cliente])
+  data_inicio    DateTime
+  data_fim       DateTime?
+  dia_vencimento Int            @default(10)
+  status         StatusContrato @default(ATIVO)
+  observacoes    String?        @db.Text
+  criado_em      DateTime       @default(now())
+  atualizado_em  DateTime       @updatedAt
 
+  cliente    Cliente    @relation(fields: [id_cliente], references: [id_cliente])
+  plano      Plano      @relation(fields: [id_plano], references: [id_plano])
+  provedor   Provedor   @relation(fields: [id_provedor], references: [id_provedor])
+  ponto_rede PontoRede? @relation(fields: [id_ponto_rede], references: [id_ponto])
+
+  faturas      Fatura[]
+  equipamentos Equipamento[]
+  historico    HistoricoContrato[]
+
+  @@index([id_provedor])
+  @@index([id_cliente])
+  @@index([id_provedor, status])
+  @@map("contratos")
+}
+
+model HistoricoContrato {
+  id              Int            @id @default(autoincrement())
+  id_contrato     Int
+  status_anterior StatusContrato
+  status_novo     StatusContrato
+  motivo          String?
+  alterado_por    String?
+  alterado_em     DateTime       @default(now())
+
+  contrato Contrato @relation(fields: [id_contrato], references: [id_contrato])
+
+  @@index([id_contrato])
+  @@map("historico_contratos")
+}
+
+// =============================================================
+//  EQUIPAMENTOS DO CLIENTE
+// =============================================================
+
+model Equipamento {
+  id_equipamento Int             @id @default(autoincrement())
+  id_provedor    Int
+  id_contrato    Int
+  tipo           TipoEquipamento
+  marca          String?
+  modelo         String?
+  numero_serie   String?
+  mac_address    String?
+  instalado_em   DateTime        @default(now())
+  devolvido_em   DateTime?
+  ativo          Boolean         @default(true)
+  observacoes    String?         @db.Text
+
+  provedor Provedor @relation(fields: [id_provedor], references: [id_provedor])
+  contrato Contrato @relation(fields: [id_contrato], references: [id_contrato])
+
+  @@index([id_provedor])
+  @@index([id_contrato])
+  @@map("equipamentos")
+}
+
+// =============================================================
+//  FINANCEIRO E FATURAMENTO
+// =============================================================
+
+model Fatura {
+  id_fatura        Int      @id @default(autoincrement())
+  id_provedor      Int
+  id_cliente       Int
+  id_contrato      Int
+  valor            Decimal  @db.Decimal(10, 2)
+  valor_pago       Decimal? @db.Decimal(10, 2)
+  data_emissao     DateTime @default(now())
+  data_vencimento  DateTime
+  data_pagamento   DateTime?
+  mes_referencia   String
+
+  status           StatusFatura     @default(PENDENTE)
+  metodo_pagamento MetodoPagamento?
+
+  pix_copia_cola       String? @db.Text
+  link_boleto          String? @db.Text
+  id_transacao_gateway String?
+  observacoes          String? @db.Text
+
+  cliente  Cliente  @relation(fields: [id_cliente], references: [id_cliente])
+  contrato Contrato @relation(fields: [id_contrato], references: [id_contrato])
+  provedor Provedor @relation(fields: [id_provedor], references: [id_provedor])
+
+  @@unique([id_contrato, mes_referencia])
+  @@index([id_provedor, status])
+  @@index([id_cliente])
+  @@index([id_contrato])
+  @@index([data_vencimento])
   @@map("faturas")
 }
 
-// Tabela de Atendimentos / Ordens de Serviço (Gestão de campo)
+// =============================================================
+//  SUPORTE TÉCNICO — ATENDIMENTOS
+// =============================================================
+
 model Atendimento {
-  id_atendimento   Int               @id @default(autoincrement())
-  id_provedor      Int
-  id_cliente       Int
-  id_funcionario   Int?              // Técnico que assumiu o chamado
-  
-  titulo           String            // Ex: "Sem sinal de internet"
-  descricao        String            @db.Text
-  status           StatusAtendimento @default(PENDENTE)
-  
-  // Feedback do Cliente
-  nota_avaliacao   Int?              // 1 a 5
-  comentario_cliente String?         @db.Text
+  id_atendimento     Int                   @id @default(autoincrement())
+  id_provedor        Int
+  id_cliente         Int
+  id_funcionario     Int?
+  titulo             String
+  descricao          String                @db.Text
+  tipo               TipoAtendimento
+  prioridade         PrioridadeAtendimento @default(MEDIA)
+  status             StatusAtendimento     @default(PENDENTE)
+  data_agendamento   DateTime?
+  criado_em          DateTime              @default(now())
+  atualizado_em      DateTime              @updatedAt
+  finalizado_em      DateTime?
+  nota_avaliacao     Int?
+  comentario_cliente String?               @db.Text
 
-  criado_em        DateTime          @default(now())
-  finalizado_em    DateTime?
+  cliente  Cliente      @relation(fields: [id_cliente], references: [id_cliente])
+  tecnico  Funcionario? @relation("TecnicoResponsavel", fields: [id_funcionario], references: [id_funcionario])
+  provedor Provedor     @relation(fields: [id_provedor], references: [id_provedor])
 
-  // Relações
-  provedor         Provedor          @relation(fields: [id_provedor], references: [id_provedor])
-  cliente          Cliente           @relation(fields: [id_cliente], references: [id_cliente])
-  funcionario      Usuario?          @relation("FuncionarioResponsavel", fields: [id_funcionario], references: [id_usuario])
-
+  @@index([id_provedor, status])
+  @@index([id_cliente])
+  @@index([id_funcionario])
   @@map("atendimentos")
 }
 
-// Tabela Técnica: Mapa e Monitoramento de Rede
+// =============================================================
+//  INFRAESTRUTURA DE REDE
+// =============================================================
+
 model RotaRede {
   id_rota          Int        @id @default(autoincrement())
   id_provedor      Int
-  nome_rota        String     // Ex: "Setor Sul - Bairro Novo"
+  nome_rota        String
+  descricao        String?    @db.Text
   ponto_referencia String?
   status           StatusRede @default(OPERANTE)
-  
-  // Geolocalização para o mapa do funcionário
-  latitude         Float?
-  longitude        Float?
+  criado_em        DateTime   @default(now())
 
-  provedor         Provedor   @relation(fields: [id_provedor], references: [id_provedor])
+  provedor    Provedor    @relation(fields: [id_provedor], references: [id_provedor])
+  pontos_rede PontoRede[]
 
+  @@index([id_provedor])
   @@map("rotas_rede")
+}
+
+model PontoRede {
+  id_ponto      Int                                    @id @default(autoincrement())
+  id_provedor   Int
+  id_rota       Int
+  nome          String
+  tipo          TipoPontoRede
+  portas_total  Int                                    @default(8)
+  portas_livres Int                                    @default(8)
+  status        StatusRede                             @default(OPERANTE)
+  endereco_ref  String?
+  coordenadas   Unsupported("geometry(Point, 4326)")?
+  criado_em     DateTime                               @default(now())
+  atualizado_em DateTime                               @updatedAt
+
+  provedor  Provedor   @relation(fields: [id_provedor], references: [id_provedor])
+  rota      RotaRede   @relation(fields: [id_rota], references: [id_rota])
+  contratos Contrato[]
+
+  @@index([id_provedor])
+  @@index([id_rota])
+  @@map("pontos_rede")
+}
+
+// =============================================================
+//  NOTIFICAÇÕES
+// =============================================================
+
+model Notificacao {
+  id_notificacao Int              @id @default(autoincrement())
+  id_provedor    Int
+  id_cliente     Int
+  canal          CanalNotificacao
+  assunto        String
+  mensagem       String           @db.Text
+  enviado        Boolean          @default(false)
+  enviado_em     DateTime?
+  erro           String?          @db.Text
+  criado_em      DateTime         @default(now())
+
+  cliente  Cliente  @relation(fields: [id_cliente], references: [id_cliente])
+  provedor Provedor @relation(fields: [id_provedor], references: [id_provedor])
+
+  @@index([id_provedor, enviado])
+  @@index([id_cliente])
+  @@map("notificacoes")
+}
+
+// =============================================================
+//  AUDITORIA E LOGS DE ALTERAÇÃO
+// =============================================================
+
+model AuditLog {
+  id           Int      @id @default(autoincrement())
+  id_provedor  Int
+  tabela       String
+  acao         String
+  dados_antes  Json?
+  dados_depois Json?
+  usuario      String?
+  ip           String?
+  criado_em    DateTime @default(now())
+
+  provedor Provedor @relation(fields: [id_provedor], references: [id_provedor])
+
+  @@index([id_provedor])
+  @@map("audit_logs")
 }

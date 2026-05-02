@@ -7,37 +7,43 @@ import { UpdatePlanoDto } from './dto/update-plano.dto';
 export class PlanosService {
   constructor(private prisma: PrismaService) {}
 
-  async create(dto: CreatePlanoDto) {
+  async create(dto: CreatePlanoDto, id_provedor: string) {
     return this.prisma.plano.create({
       data: {
-        nome: dto.nome,
-        velocidade: dto.velocidade,
-        preco: dto.preco,
-        id_provedor: dto.id_provedor,
+        ...dto,
+        id_provedor: Number(id_provedor),
       },
     });
   }
 
-  async findAll(id_provedor: number) {
+  async findAll(id_provedor: string) {
     return this.prisma.plano.findMany({
-      where: { id_provedor },
+      where: { id_provedor: Number(id_provedor) },
     });
   }
 
-  async findOne(id: number) {
-    const plano = await this.prisma.plano.findUnique({ where: { id_plano: id } });
+  async findOne(id: number, id_provedor: string) {
+    const plano = await this.prisma.plano.findFirst({ 
+      where: { 
+        id_plano: id,
+        id_provedor: Number(id_provedor)
+      } 
+    });
     if (!plano) throw new NotFoundException('Plano não encontrado.');
     return plano;
   }
 
-  async update(id: number, dto: UpdatePlanoDto) {
+  async update(id: number, dto: UpdatePlanoDto, id_provedor: string) {
+    await this.findOne(id, id_provedor);
+
     return this.prisma.plano.update({
       where: { id_plano: id },
       data: dto,
     });
   }
 
-  async remove(id: number) {
+  async remove(id: number, id_provedor: string) {
+    await this.findOne(id, id_provedor);
     return this.prisma.plano.delete({ where: { id_plano: id } });
   }
 }

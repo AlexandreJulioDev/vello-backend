@@ -1,13 +1,13 @@
 import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProvedoreDto } from './dto/create-provedore.dto';
+import { UpdateProvedoreDto } from './dto/update-provedore.dto';
 
 @Injectable()
 export class ProvedoresService {
   constructor(private prisma: PrismaService) {}
 
   async create(data: CreateProvedoreDto) {
-    // Validação de duplicidade
     const existe = await this.prisma.provedor.findFirst({
       where: {
         OR: [{ cnpj: data.cnpj }, { slug: data.slug }]
@@ -20,11 +20,8 @@ export class ProvedoresService {
 
     return this.prisma.provedor.create({
       data: {
-        nome_fantasia: data.nome_fantasia,
-        cnpj: data.cnpj,
+        ...data,
         slug: data.slug.toLowerCase(),
-        logo_url: data.logo_url,
-        cor_principal: data.cor_principal || '#1F6F9B',
       }
     });
   }
@@ -42,5 +39,20 @@ export class ProvedoresService {
 
     if (!provedor) throw new NotFoundException('Provedor não encontrado.');
     return provedor;
+  }
+
+  async update(id: number, data: UpdateProvedoreDto) {
+    await this.findOne(id);
+    return this.prisma.provedor.update({
+      where: { id_provedor: id },
+      data
+    });
+  }
+
+  async remove(id: number) {
+    await this.findOne(id);
+    return this.prisma.provedor.delete({
+      where: { id_provedor: id }
+    });
   }
 }
