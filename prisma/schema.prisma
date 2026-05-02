@@ -9,8 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider   = "postgresql"
-  extensions = [postgis]
+  provider = "postgresql"
 }
 
 // =============================================================
@@ -221,7 +220,7 @@ model Endereco {
   estado      String
   complemento String?
   referencia  String?
-  coordenadas Unsupported("geometry(Point, 4326)")?
+  coordenadas String? // Formato: "lat,long"
 
   cliente Cliente @relation(fields: [id_cliente], references: [id_cliente])
 
@@ -421,7 +420,7 @@ model PontoRede {
   portas_livres Int                                    @default(8)
   status        StatusRede                             @default(OPERANTE)
   endereco_ref  String?
-  coordenadas   Unsupported("geometry(Point, 4326)")?
+  coordenadas   String? // Formato: "lat,long"
   criado_em     DateTime                               @default(now())
   atualizado_em DateTime                               @updatedAt
 
