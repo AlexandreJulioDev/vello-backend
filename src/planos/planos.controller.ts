@@ -27,7 +27,7 @@ export class PlanosController {
   @Public()
   @Get('publico/:idProvedor')
   findPublic(@Param('idProvedor') idProvedor: string) {
-    return this.planosService.findAll(+idProvedor);
+    return this.planosService.findAll(idProvedor);
   }
 
   @Get(':id')
