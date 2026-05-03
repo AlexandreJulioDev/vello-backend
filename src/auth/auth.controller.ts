@@ -62,23 +62,35 @@ export class AuthController {
     return this.authService.login(cliente);
   }
 
-  // ─── ATUALIZAR PERFIL (Self) ──────────────────────────
   @UseGuards(AuthGuard('jwt'))
   @Patch('perfil')
   async updatePerfil(@Body() body: any, @Request() req) {
-    const { userId, perfil } = req.user;
-    const { nome, telefone, foto_url } = body;
+    const { userId, perfil, id_provedor } = req.user;
+    const { nome, telefone, foto_url, email } = body;
 
     const perfisAdm = ['DONO', 'GERENTE'];
     const isAdm = perfisAdm.includes(perfil);
 
     if (isAdm) {
+      // Se estiver tentando mudar o e-mail, verifica se já existe
+      if (email) {
+        const existente = await this.prisma.administrador.findFirst({
+          where: { 
+            email, 
+            id_provedor,
+            id_adm: { not: userId } 
+          }
+        });
+        if (existente) throw new ConflictException('Este e-mail já está em uso por outro administrador.');
+      }
+
       return this.prisma.administrador.update({
         where: { id_adm: userId },
-        data: { nome, telefone, foto_url },
+        data: { nome, telefone, foto_url, email },
         select: { id_adm: true, nome: true, email: true, perfil: true, telefone: true, foto_url: true }
       });
     } else {
+      // Funcionários por enquanto não mudam e-mail via perfil por segurança
       return this.prisma.funcionario.update({
         where: { id_funcionario: userId },
         data: { nome, telefone, foto_url },
