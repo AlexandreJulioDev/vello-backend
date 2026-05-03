@@ -381,6 +381,7 @@ model Atendimento {
   criado_em          DateTime              @default(now())
   atualizado_em      DateTime              @updatedAt
   finalizado_em      DateTime?
+  equipamento_desc   String?               @db.Text
   nota_avaliacao     Int?
   comentario_cliente String?               @db.Text
 
